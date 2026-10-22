@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة اجمع النجوم 🌟</title>
+    <!-- استدعاء خط Cairo وتنسيقات Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        /* خلفية متدرجة متحركة بألوان مبهجة */
+        .bg-animated {
+            background: linear-gradient(-45deg, #ff9a9e, #fecfef, #a1c4fd, #c2e9fb);
+            background-size: 400% 400%;
+            animation: gradientBG 12s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* أنيميشن ظهور واستجابة النجمة */
+        .star-btn {
+            transition: transform 0.1s ease, filter 0.2s ease;
+            filter: drop-shadow(0 10px 15px rgba(255, 215, 0, 0.5));
+            animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .star-btn:active {
+            transform: scale(0.8) !important;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        /* تأثير العبارة التحفيزية الطافية عند الضغط */
+        .floating-score {
+            position: absolute;
+            animation: floatUp 0.8s ease-out forwards;
+            pointer-events: none;
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-60px) scale(1.4); }
+        }
+
+        /* زجاجية الحاويات (Glassmorphism) */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-animated min-h-screen flex flex-col justify-between items-center p-4 overflow-hidden relative">
+
+    <!-- شريط معلومات اللعبة (النتيجة والمؤقت) -->
+    <header class="w-full max-w-md glass-panel rounded-3xl p-4 shadow-xl flex justify-between items-center z-10 my-2">
+        <!-- عداد النقاط -->
+        <div class="flex items-center gap-3 bg-white/60 px-4 py-2 rounded-2xl shadow-inner">
+            <span class="text-3xl">⭐</span>
+            <div class="flex flex-col">
+                <span class="text-xs text-gray-600 font-bold">النقاط</span>
+                <span id="score" class="text-2xl font-black text-amber-500">0</span>
+            </div>
+        </div>
+
+        <!-- عنوان اللعبة -->
+        <h1 class="text-xl font-black text-purple-800 hidden sm:block">اجمع النجوم ✨</h1>
+
+        <!-- الوقت المتبقي -->
+        <div class="flex items-center gap-3 bg-white/60 px-4 py-2 rounded-2xl shadow-inner">
+            <span class="text-3xl">⏳</span>
+            <div class="flex flex-col">
+                <span class="text-xs text-gray-600 font-bold">الوقت</span>
+                <span id="timer" class="text-2xl font-black text-rose-500">20s</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- منطقة اللعب الرئيسية -->
+    <main id="game-area" class="w-full max-w-xl h-[65vh] glass-panel rounded-3xl relative overflow-hidden shadow-2xl flex items-center justify-center my-auto">
+        
+        <!-- شاشة البداية -->
+        <div id="start-screen" class="text-center p-6 z-20 flex flex-col items-center gap-4">
+            <div class="text-7xl mb-2 animate-bounce">🌟</div>
+            <h2 class="text-3xl font-black text-purple-900">مرحباً بك في لعبة اجمع النجوم!</h2>
+            <p class="text-gray-700 font-semibold max-w-xs text-sm sm:text-base">
+                اضغط على النجوم السريعة بأسرع ما يمكنك لجمع أكبر عدد من النقاط قبل انتهاء الوقت!
+            </p>
+            <button id="start-btn" onclick="startGame()" class="mt-4 px-8 py-4 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xl font-black rounded-2xl shadow-lg hover:brightness-110 active:scale-95 transition-all duration-150 border-b-4 border-orange-600">
+                ابدأ اللعب الآن 🚀
+            </button>
+        </div>
+
+        <!-- النجمة التفاعلية التي تظهر أثناء اللعب -->
+        <button id="star" onclick="catchStar(event)" class="hidden absolute star-btn p-2 focus:outline-none cursor-pointer">
+            <svg class="w-16 h-16 sm:w-20 sm:h-20 drop-shadow-md" viewBox="0 0 24 24" fill="#FFD700" stroke="#FFA500" stroke-width="1">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+        </button>
+
+        <!-- شاشة انتهاء اللعبة -->
+        <div id="game-over-screen" class="hidden text-center p-6 z-20 flex flex-col items-center gap-4 bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl border-2 border-white max-w-xs sm:max-w-sm">
+            <div class="text-6xl animate-pulse">🎉</div>
+            <h2 class="text-3xl font-black text-purple-900">انتهى الوقت!</h2>
+            
+            <div class="bg-amber-100 p-4 rounded-2xl w-full border border-amber-300">
+                <p class="text-gray-600 font-bold text-sm">مجموع نقاطك</p>
+                <p id="final-score" class="text-4xl font-black text-amber-600 my-1">0</p>
+                <p id="feedback-msg" class="text-xs font-bold text-purple-700 mt-2"></p>
+            </div>
+
+            <button onclick="startGame()" class="w-full py-3.5 bg-gradient-to-r from-emerald-400 to-teal-500 text-white text-lg font-black rounded-2xl shadow-lg hover:brightness-110 active:scale-95 transition-all duration-150 border-b-4 border-teal-700 flex items-center justify-center gap-2">
+                <span>إعادة اللعب 🔄</span>
+            </button>
+        </div>
+    </main>
+
+    <!-- أسفل الصفحة -->
+    <footer class="text-xs font-bold text-gray-600 text-center my-2">
+        استمتع باللعبة واختبر سرعة بديهتك! ⚡
+    </footer>
+
+    <!-- منطق اللعبة باستخدام JavaScript -->
+    <script>
+        // عناصر واجهة المستخدم
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const starBtn = document.getElementById('star');
+        const gameArea = document.getElementById('game-area');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const finalScoreEl = document.getElementById('final-score');
+        const feedbackMsgEl = document.getElementById('feedback-msg');
+
+        // متغيّرات اللعبة
+        let score = 0;
+        let timeLeft = 20; // مدة اللعبة بالثواني
+        let timerInterval = null;
+        let isPlaying = false;
+
+        // بدء اللعبة
+        function startGame() {
+            score = 0;
+            timeLeft = 20;
+            isPlaying = true;
+
+            scoreEl.textContent = score;
+            timerEl.textContent = timeLeft + 's';
+
+            // إخفاء الشاشات الفرعية وإظهار النجمة
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            starBtn.classList.remove('hidden');
+
+            // تحريك النجمة للمرة الأولى
+            moveStar();
+
+            // بدء المؤقت التنازلي
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = timeLeft + 's';
+
+                // تغيير لون الوقت عندما يوشك على الانتهاء
+                if (timeLeft <= 5) {
+                    timerEl.classList.add('animate-ping');
+                } else {
+                    timerEl.classList.remove('animate-ping');
+                }
+
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        // عند الضغط على النجمة
+        function catchStar(event) {
+            if (!isPlaying) return;
+
+            // زيادة النقاط
+            score += 10;
+            scoreEl.textContent = score;
+
+            // إضافة تأثير صوتي بسيط باستخدام Web Audio API (بدون ملفات خارجية)
+            playCatchSound();
+
+            // إظهار الرقم النامي عند الضغط
+            showFloatingText(event.clientX, event.clientY, '+10');
+
+            // نقل النجمة لمكان جديد
+            moveStar();
+        }
+
+        // نقل النجمة لموقع عشوائي داخل حدود منطقة اللعب
+        function moveStar() {
+            const areaRect = gameArea.getBoundingClientRect();
+            const starSize = starBtn.offsetWidth || 70; // الحجم التقريبي للنجمة
+
+            // حساب أقصى إحداثيات مسموحة
+            const maxX = areaRect.width - starSize - 20;
+            const maxY = areaRect.height - starSize - 20;
+
+            // إنتاج إحداثيات عشوائية
+            const randomX = Math.max(10, Math.floor(Math.random() * maxX));
+            const randomY = Math.max(10, Math.floor(Math.random() * maxY));
+
+            // تطبيق الإحداثيات الجديدة
+            starBtn.style.left = `${randomX}px`;
+            starBtn.style.top = `${randomY}px`;
+
+            // إعادة تشغيل أنيميشن الظهور
+            starBtn.style.animation = 'none';
+            starBtn.offsetHeight; // Reflow
+            starBtn.style.animation = 'popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        }
+
+        // إنتاج عبارات طافية جذابة عند جمع النجمة
+        function showFloatingText(x, y, text) {
+            const floatEl = document.createElement('div');
+            floatEl.className = 'floating-score text-xl';
+            floatEl.textContent = text;
+            
+            // تحديد موقع النص بالنسبة للشاشة
+            floatEl.style.left = `${x - 15}px`;
+            floatEl.style.top = `${y - 30}px`;
+
+            document.body.appendChild(floatEl);
+
+            // حذف العنصر بعد انتهاء الأنيميشن
+            setTimeout(() => {
+                floatEl.remove();
+            }, 800);
+        }
+
+        // إحداث صوت بسيط عند الإمساك بالنجمة
+        function playCatchSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime); // نغمة D5
+                osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1); // نغمة A5
+
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start();
+                osc.stop(ctx.currentTime + 0.1);
+            } catch (e) {
+                // في حال عدم دعم المتصفح لنظام الصوت
+            }
+        }
+
+        // نهاية اللعبة
+        function endGame() {
+            isPlaying = false;
+            clearInterval(timerInterval);
+
+            // إخفاء النجمة وإظهار شاشة النتيجة
+            starBtn.classList.add('hidden');
+            gameOverScreen.classList.remove('hidden');
+            finalScoreEl.textContent = score;
+
+            // تحديد الرسالة التحفيزية بناءً على النتيجة
+            if (score >= 200) {
+                feedbackMsgEl.textContent = 'أداء أسطوري! سرعة بديهتك خارقة ⚡🏆';
+            } else if (score >= 120) {
+                feedbackMsgEl.textContent = 'ممتاز جداً! لديك مهارة عالية 🌟';
+            } else if (score >= 60) {
+                feedbackMsgEl.textContent = 'جيد جداً! تستطيع تحقيق أفضل من ذلك 👍';
+            } else {
+                feedbackMsgEl.textContent = 'حاول مرة أخرى لتطوير سرعتك! 🚀';
+            }
+        }
+
+        // ضبط مكان النجمة في حال تغيير حجم الشاشة أثناء اللعب
+        window.addEventListener('resize', () => {
+            if (isPlaying) {
+                moveStar();
+            }
+        });
+    </script>
+</body>
+</html>
